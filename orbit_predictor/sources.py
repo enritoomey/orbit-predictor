@@ -32,6 +32,8 @@ from sgp4.io import twoline2rv
 from orbit_predictor.accuratepredictor import HighAccuracyTLEPredictor
 from orbit_predictor.predictors import TLEPredictor
 
+import dateutil.parser
+
 try:
     from urllib import parse as urlparse
     from urllib.parse import urlencode
@@ -134,9 +136,9 @@ class WSTLESource(TLESource):
         else:
             return lines_from_cache
 
-        lines = self.get_tle_for_date(sate_id, date)
+        tle_date, lines = self.get_tle_for_date(sate_id, date)
         # save on cache
-        self.cache.add_tle(sate_id, lines, date)
+        self.cache.add_tle(sate_id, lines, tle_date)
         return lines
 
     def get_last_update(self, sate_id):
@@ -162,8 +164,9 @@ class WSTLESource(TLESource):
             logger.error("Exception requesting TLE: %s", error)
             raise
         if response.ok and 'lines' in response.json():
+            date = dateutil.parser.parse(response.json()['date'])
             lines = tuple(response.json()['lines'])
-            return lines
+            return date, lines
         else:
             raise ValueError("Error requesting TLE: %s", response.text)
 
